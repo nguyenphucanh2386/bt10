@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách SV</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #007BFF; color: white; }
+    </style>
+</head>
+<body>
+
+    <h2>Xử lý Danh sách Sinh viên</h2>
+    <input type="file" id="fileUpload" accept=".xlsx, .xls" />
+
+    <table>
+        <thead>
+            <tr><th>STT</th><th>Mã SV</th><th>Họ Tên</th><th>Lớp</th><th>Khóa</th><th>Khoa</th><th>Email</th></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+<script>
+    class SinhVien {
+       
+        constructor(row) {
+            this.msv = String(row["Mã SV"] || row["MSV"] || "").trim();
+            this.hoTen = String(row["Họ và tên"] || row["Họ tên"] || "").trim();
+            this.lop = row["Lớp"] || row["Tên lớp"] || "Không có thông tin lớp"; 
+        }
+
+        getEmail() {
+            
+            let parts = this.hoTen.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().split(/\s+/);
+            let ten = parts.pop();
+            let hoDem = parts.map(p => p[0]).join('');
+            
+            return `${ten}${hoDem}.${this.msv.toLowerCase()}@hvnh.edu.vn`;
+        }
+
+        getKhoaHoc() { return `Khóa ${this.msv.substring(0, 2)}`; }
+
+        getKhoa() {
+            let code = this.msv.substring(2, 3).toUpperCase();
+            return code === 'A' ? "Kế toán" : code === 'T' ? "CNTT" : "Ngân hàng";
+        }
+    }
+
+  
+    document.getElementById('fileUpload').onchange = e => {
+        let reader = new FileReader();
+        reader.onload = evt => {
+            let wb = XLSX.read(evt.target.result, {type: 'array'});
+            let data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]); // Đọc dạng Object an toàn
+
+            
+            let html = data.filter(row => row["Mã SV"] || row["MSV"])
+                .map((row, index) => {
+                    let sv = new SinhVien(row);
+                    return `<tr>
+                                <td>${index + 1}</td>
+                                <td>${sv.msv}</td>
+                                <td>${sv.hoTen}</td>
+                                <td>${sv.lop}</td>
+                                <td>${sv.getKhoaHoc()}</td>
+                                <td>${sv.getKhoa()}</td>
+                                <td>${sv.getEmail()}</td>
+                            </tr>`;
+                }).join(''); 
+
+            document.getElementById('tableBody').innerHTML = html; 
+        };
+        reader.readAsArrayBuffer(e.target.files[0]);
+    };
+</script>
+
+</body>
+</html>
